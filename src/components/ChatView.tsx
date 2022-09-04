@@ -18,6 +18,7 @@ import {
   DeactivateAutoscrollAction
 } from '../Actions'
 import { DispatchContext } from '../App'
+import { MessageList } from './messages/MessageList'
 
 type MovementMessageType =
   | ConnectedMessage
@@ -43,20 +44,20 @@ interface Props {
 }
 
 export default function ChatView (props: Props) {
-  const dispatch = useContext(DispatchContext)
+  // const dispatch = useContext(DispatchContext)
 
-  const handleScroll = () => {
-    const messageWindow = document.querySelector('#messages')
-    const isScrolledToBottom =
-      messageWindow.scrollHeight ===
-      messageWindow.scrollTop + messageWindow.clientHeight
+  // const handleScroll = () => {
+  //   const messageWindow = document.querySelector('#messages')
+  //   const isScrolledToBottom =
+  //     messageWindow.scrollHeight ===
+  //     messageWindow.scrollTop + messageWindow.clientHeight
 
-    if (isScrolledToBottom && !props.autoscrollChat) {
-      dispatch(ActivateAutoscrollAction())
-    } else if (!isScrolledToBottom && props.autoscrollChat) {
-      dispatch(DeactivateAutoscrollAction())
-    }
-  }
+  //   if (isScrolledToBottom && !props.autoscrollChat) {
+  //     dispatch(ActivateAutoscrollAction())
+  //   } else if (!isScrolledToBottom && props.autoscrollChat) {
+  //     dispatch(DeactivateAutoscrollAction())
+  //   }
+  // }
 
   useEffect(() => {
     const lastMessage = document.querySelector(
@@ -111,7 +112,9 @@ export default function ChatView (props: Props) {
       >
         {shouldShowOlderMessages ? 'Hide' : 'Show'} Older Messages
       </button>
-      <div id="messages" onScroll={handleScroll}>
+      <div id="messages">
+        <MessageList messages={shownMessages} />
+        {/*
         {shownMessages.slice(-150).map((m, idx) => {
           let hideTimestamp = false
           const previousMessage = props.messages[idx - 1]
@@ -150,6 +153,7 @@ export default function ChatView (props: Props) {
             </>
           )
         })}
+        */}
       </div>
     </>
   )
