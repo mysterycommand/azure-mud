@@ -19,20 +19,21 @@ import {
 } from '../Actions'
 import { DispatchContext } from '../App'
 
-function isMovementMessage (
-  message: Message
-): message is
+type MovementMessageType =
   | ConnectedMessage
   | DisconnectedMessage
   | EnteredMessage
-  | LeftMessage {
-  return (
-    message.type === MessageType.Connected ||
-    message.type === MessageType.Disconnected ||
-    message.type === MessageType.Entered ||
-    message.type === MessageType.Left
-  )
-}
+  | LeftMessage;
+
+const movementMessageTypes = [
+  MessageType.Connected,
+  MessageType.Disconnected,
+  MessageType.Entered,
+  MessageType.Left
+]
+
+const isMovementMessage = (message: Message): message is MovementMessageType =>
+  movementMessageTypes.includes(message.type)
 
 interface Props {
   messages: Message[];
