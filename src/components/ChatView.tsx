@@ -1,5 +1,5 @@
 import { findLastIndex } from 'lodash'
-import React, { useContext } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 
 import {
   ConnectedMessage,
@@ -58,7 +58,7 @@ export default function ChatView (props: Props) {
     }
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     const lastMessage = document.querySelector(
       '#messages .message-wrapper:last-of-type'
     )
@@ -73,7 +73,7 @@ export default function ChatView (props: Props) {
   })
 
   const [shouldShowOlderMessages, setShouldShowOlderMessages] =
-    React.useState(false)
+    useState(false)
 
   // This message filtering logic is kinda ugly and hard to read
   function shouldRemoveMessage (m: Message) {
