@@ -1,13 +1,13 @@
-import React, { useContext } from 'react'
 import { findLastIndex } from 'lodash'
+import React, { useContext } from 'react'
 
+import { ConnectedMessage, DisconnectedMessage, EnteredMessage, LeftMessage, Message, MessageType } from '../message'
 import MessageView from './MessageView'
-import { Message, MessageType, ConnectedMessage, DisconnectedMessage, EnteredMessage, LeftMessage } from '../message'
 
-import '../../style/chat.css'
-import { DispatchContext } from '../App'
-import { ActivateAutoscrollAction, DeactivateAutoscrollAction } from '../Actions'
 import { ServerSettings } from '../../server/src/types'
+import '../../style/chat.css'
+import { ActivateAutoscrollAction, DeactivateAutoscrollAction } from '../Actions'
+import { DispatchContext } from '../App'
 
 function isMovementMessage (message: Message): message is ConnectedMessage | DisconnectedMessage | EnteredMessage | LeftMessage {
   return message.type === MessageType.Connected || message.type === MessageType.Disconnected ||
