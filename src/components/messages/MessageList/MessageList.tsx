@@ -1,5 +1,5 @@
 import React, { FC } from 'react'
-import { Message } from '../../../message'
+import { Message, MessageType } from '../../../message'
 import MessageView from '../../MessageView'
 import { MessageItem } from '../MessageItem'
 import { messageId } from '../utils'
@@ -31,6 +31,7 @@ export const MessageList: FC<MessageListProps> = ({ messages }) => {
 
         return (
           <MessageItem key={messageId(message)}>
+            {message.type === MessageType.MovedRoom && <hr />}
             <MessageView
               message={message}
               id={messageId(message)}
