@@ -1,7 +1,6 @@
 import React, { FC } from 'react'
-import { Message, MessageType } from '../../../message'
-import MessageView from '../../MessageView'
-import { MessageItem } from '../MessageItem'
+import { Message, MessageType } from '../../message'
+import MessageView from '../MessageView'
 
 import './MessageList.css'
 
@@ -28,21 +27,17 @@ const shouldHideTimestamp = (
 export const MessageList: FC<MessageListProps> = ({ messages }) => {
   return (
     <ol className="message-list">
-      {messages.map((message, i) => {
-        const hideTimestamp = shouldHideTimestamp(message, messages[i - 1])
-
-        return (
-          <MessageItem key={messageId(message)}>
-            {message.type === MessageType.MovedRoom && <hr />}
-            <MessageView
-              message={message}
-              id={messageId(message)}
-              hideTimestamp={hideTimestamp}
-              msgIndex={i}
-            />
-          </MessageItem>
-        )
-      })}
+      {messages.map((message, i) => (
+        <li key={messageId(message)}>
+          {message.type === MessageType.MovedRoom && <hr />}
+          <MessageView
+            message={message}
+            id={messageId(message)}
+            hideTimestamp={shouldHideTimestamp(message, messages[i - 1])}
+            msgIndex={i}
+          />
+        </li>
+      ))}
     </ol>
   )
 }
