@@ -2,13 +2,15 @@ import React, { FC } from 'react'
 import { Message, MessageType } from '../../../message'
 import MessageView from '../../MessageView'
 import { MessageItem } from '../MessageItem'
-import { messageId } from '../utils'
 
 import './MessageList.css'
 
 interface MessageListProps {
   messages: Message[];
 }
+
+const messageId = (message: Message): string =>
+  `${message.type}-${message.timestamp}`
 
 const THREE_MINUTES = 1_000 * 60 * 3
 const shouldHideTimestamp = (
