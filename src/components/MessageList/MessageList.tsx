@@ -110,7 +110,7 @@ const useToggleAutoscroll = (
   )
 }
 
-export const MessageList = ({ messages, autoscroll }) => {
+export const MessageList: FC<MessageListProps> = ({ messages, autoscroll }) => {
   const scrollContainerRef = useAutoscrollTo(
     '.message-list > :last-child',
     autoscroll
