@@ -1,13 +1,13 @@
 import React, {
   FC,
-  forwardRef,
-  useRef,
   MutableRefObject,
+  UIEventHandler,
   useCallback,
-  useEffect,
   useContext,
-  UIEventHandler
+  useEffect,
+  useRef
 } from 'react'
+
 import {
   ActivateAutoscrollAction,
   DeactivateAutoscrollAction
