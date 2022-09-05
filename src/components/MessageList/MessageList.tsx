@@ -52,22 +52,17 @@ const useAutoscrollTo = (
         return
       }
 
-      for (const mutation of mutations) {
-        if (
-          !(
+      mutations
+        .find(
+          (mutation) =>
             mutation.type === 'childList' &&
             mutation.addedNodes.length === 1 &&
             mutation.addedNodes[0] instanceof Element &&
             mutation.addedNodes[0].matches(selector)
-          )
-        ) {
-          continue
-        }
-
-        mutation.addedNodes[0].scrollIntoView({
+        )
+        ?.addedNodes[0].scrollIntoView({
           behavior: 'smooth'
         })
-      }
     },
     [selector, autoscroll]
   )

@@ -102,7 +102,10 @@ declare global {
     stopDebugMessageDispatcher: () => void;
   }
 }
-window.stopDebugMessageDispatcher = () => clearTimeout(timeoutId)
+
+if (process.env.NODE_ENV === 'development') {
+  window.stopDebugMessageDispatcher = () => clearTimeout(timeoutId)
+}
 
 export default function ChatView (props: Props) {
   useDebugMessageDispatcher()
