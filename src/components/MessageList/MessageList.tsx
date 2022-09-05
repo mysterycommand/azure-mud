@@ -40,10 +40,11 @@ const shouldHideTimestamp = (
     new Date(previousMessage.timestamp).getTime() <
     THREE_MINUTES
 
-const useAutoscroll = (
+const useAutoscrollTo = (
+  selector: string,
   autoscroll: boolean
 ): MutableRefObject<HTMLOListElement> => {
-  const olRef = useRef<HTMLOListElement>()
+  const scrollContainerRef = useRef<HTMLOListElement>()
 
   const mutationCallback = useCallback(
     (mutations) => {
@@ -57,7 +58,7 @@ const useAutoscroll = (
             mutation.type === 'childList' &&
             mutation.addedNodes.length === 1 &&
             mutation.addedNodes[0] instanceof Element &&
-            mutation.addedNodes[0].matches('.message-list > :last-child')
+            mutation.addedNodes[0].matches(selector)
           )
         ) {
           continue
@@ -68,33 +69,35 @@ const useAutoscroll = (
         })
       }
     },
-    [autoscroll]
+    [selector, autoscroll]
   )
 
   useEffect(() => {
-    if (!olRef.current) {
+    if (!scrollContainerRef.current) {
       return
     }
 
     const mutationObserver = new MutationObserver(mutationCallback)
-    mutationObserver.observe(olRef.current, {
+    mutationObserver.observe(scrollContainerRef.current, {
       childList: true
     })
 
     return () => mutationObserver.disconnect()
-  }, [olRef.current, mutationCallback])
+  }, [scrollContainerRef.current, mutationCallback])
 
-  return olRef
+  return scrollContainerRef
 }
 
-const useToggleAutoscroll = (autoscroll: boolean): UIEventHandler<HTMLOListElement> => {
+const useToggleAutoscroll = (
+  autoscroll: boolean
+): UIEventHandler<HTMLOListElement> => {
   const dispatch = useContext(DispatchContext)
 
   return useCallback<UIEventHandler<HTMLOListElement>>(
     ({ currentTarget }) => {
       const isScrolledToBottom =
         currentTarget.scrollHeight ===
-        // not exactly sure why, but sometime's there's a half-pixel difference
+        // not exactly sure why, but sometime's there's an extra half-pixel
         Math.floor(currentTarget.scrollTop + currentTarget.clientHeight + 1)
 
       if (isScrolledToBottom && !autoscroll) {
@@ -108,11 +111,18 @@ const useToggleAutoscroll = (autoscroll: boolean): UIEventHandler<HTMLOListEleme
 }
 
 export const MessageList = ({ messages, autoscroll }) => {
-  const olRef = useAutoscroll(autoscroll)
-  const handleScroll = useToggleAutoscroll(autoscroll)
+  const scrollContainerRef = useAutoscrollTo(
+    '.message-list > :last-child',
+    autoscroll
+  )
+  const toggleAutoscroll = useToggleAutoscroll(autoscroll)
 
   return (
-    <ol className="message-list" ref={olRef} onScroll={handleScroll}>
+    <ol
+      className="message-list"
+      ref={scrollContainerRef}
+      onScroll={toggleAutoscroll}
+    >
       {messages.map((message, i) => (
         <li key={messageId(message)}>
           {message.type === MessageType.MovedRoom && <hr />}

@@ -50,6 +50,12 @@ interface Props {
   captionsEnabled: boolean;
 }
 
+/**
+ * necessary because TypeScript doesn't know we're in a browser context
+ *
+ * @see node_modules/typescript/lib/lib.dom.d.ts
+ * @see node_modules/@types/node/globals.d.ts
+ */
 declare function setTimeout(
   handler: TimerHandler,
   timeout?: number,
@@ -58,12 +64,14 @@ declare function setTimeout(
 declare function clearTimeout(id: number | undefined): void;
 
 let timeoutId = 0
-window.stop = () => clearTimeout(timeoutId)
 
-export default function ChatView (props: Props) {
+const useDebugMessageDispatcher = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return
+  }
+
   const dispatch = useContext(DispatchContext)
 
-  // useful for debugging
   useEffect(() => {
     const dispatchMessage = () =>
       dispatch(SendMessageAction(`The time is now ${new Date()}.`))
@@ -83,6 +91,21 @@ export default function ChatView (props: Props) {
     scheduleMessage()
     return () => clearTimeout(timeoutId)
   }, [])
+}
+
+/**
+ * explicitly adding `stopDebugMessageDispatcher` to the window so I can stop
+ * this thing after a few messages if I want to inspect stuff
+ */
+declare global {
+  interface Window {
+    stopDebugMessageDispatcher: () => void;
+  }
+}
+window.stopDebugMessageDispatcher = () => clearTimeout(timeoutId)
+
+export default function ChatView (props: Props) {
+  useDebugMessageDispatcher()
 
   const [shouldShowOlderMessages, setShouldShowOlderMessages] = useState(false)
 
