@@ -1,5 +1,11 @@
 import { findLastIndex } from 'lodash'
-import React, { useContext, useEffect, useState } from 'react'
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 
 import {
   ConnectedMessage,
@@ -15,7 +21,8 @@ import { ServerSettings } from '../../server/src/types'
 import '../../style/chat.css'
 import {
   ActivateAutoscrollAction,
-  DeactivateAutoscrollAction
+  DeactivateAutoscrollAction,
+  SendMessageAction
 } from '../Actions'
 import { DispatchContext } from '../App'
 import { MessageList } from './MessageList'
@@ -43,38 +50,41 @@ interface Props {
   captionsEnabled: boolean;
 }
 
+declare function setTimeout(
+  handler: TimerHandler,
+  timeout?: number,
+  ...arguments: any[]
+): number;
+declare function clearTimeout(id: number | undefined): void;
+
+let timeoutId = 0
+window.stop = () => clearTimeout(timeoutId)
+
 export default function ChatView (props: Props) {
-  // const dispatch = useContext(DispatchContext)
+  const dispatch = useContext(DispatchContext)
 
-  // const handleScroll = () => {
-  //   const messageWindow = document.querySelector('#messages')
-  //   const isScrolledToBottom =
-  //     messageWindow.scrollHeight ===
-  //     messageWindow.scrollTop + messageWindow.clientHeight
-
-  //   if (isScrolledToBottom && !props.autoscrollChat) {
-  //     dispatch(ActivateAutoscrollAction())
-  //   } else if (!isScrolledToBottom && props.autoscrollChat) {
-  //     dispatch(DeactivateAutoscrollAction())
-  //   }
-  // }
-
+  // useful for debugging
   useEffect(() => {
-    const lastMessage = document.querySelector(
-      '#messages .message-wrapper:last-of-type'
-    )
-    if (lastMessage && props.autoscrollChat) {
-      // I was using lastMessage.scrollIntoView()
-      // But I was seeing odd behavior when there was only one message on-screen.
-      // This very TS-unfriendly code fixes taht.
-      (lastMessage.parentNode as Element).scrollTop =
-        (lastMessage as any).offsetTop -
-        (lastMessage.parentNode as any).offsetTop
-    }
-  })
+    const dispatchMessage = () =>
+      dispatch(SendMessageAction(`The time is now ${new Date()}.`))
 
-  const [shouldShowOlderMessages, setShouldShowOlderMessages] =
-    useState(false)
+    // let timeoutId = 0
+    const scheduleMessage = () => {
+      timeoutId = setTimeout(
+        () => {
+          dispatchMessage()
+          scheduleMessage()
+        },
+        // sends a message every 5 + 0..10 seconds
+        (5 + Math.round(Math.random() * 10)) * 1_000
+      )
+    }
+
+    scheduleMessage()
+    return () => clearTimeout(timeoutId)
+  }, [])
+
+  const [shouldShowOlderMessages, setShouldShowOlderMessages] = useState(false)
 
   // This message filtering logic is kinda ugly and hard to read
   function shouldRemoveMessage (m: Message) {
@@ -113,7 +123,10 @@ export default function ChatView (props: Props) {
         {shouldShowOlderMessages ? 'Hide' : 'Show'} Older Messages
       </button>
       <div id="messages">
-        <MessageList messages={shownMessages} />
+        <MessageList
+          messages={shownMessages}
+          autoscroll={props.autoscrollChat}
+        />
       </div>
     </>
   )
