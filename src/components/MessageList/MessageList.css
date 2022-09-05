@@ -9,4 +9,11 @@
 
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.message-list > :first-child {
+  margin-top: auto;
 }
