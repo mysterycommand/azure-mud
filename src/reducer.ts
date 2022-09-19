@@ -1,53 +1,53 @@
-import { Action, ActionType, UnlockBadgeAction } from './Actions'
+import firebase from 'firebase/app'
+import { v4 as uuidv4 } from 'uuid'
+import { Badge } from '../server/src/badges'
+import { MESSAGE_MAX_LENGTH } from '../server/src/config'
+import { DEFAULT_SERVER_SETTINGS, ServerSettings } from '../server/src/types'
+import { MinimalUser, PublicUser, User } from '../server/src/user'
+import { Action, ActionType } from './Actions'
+import Config from './config'
 import {
-  Message,
-  createConnectedMessage,
-  createDisconnectedMessage,
-  createEnteredMessage,
-  createLeftMessage,
+  createCaptionMessage,
   createChatMessage,
-  createWhisperMessage,
-  createErrorMessage,
-  createShoutMessage,
-  createEmoteMessage,
+  createCommandMessage,
+  createConnectedMessage,
   createDanceMessage,
+  createDisconnectedMessage,
+  createEmoteMessage,
+  createEnteredMessage,
+  createErrorMessage,
+  createLeftMessage,
   createModMessage,
   createMovedRoomMessage,
   createSameRoomMessage,
+  createShoutMessage,
+  createWhisperMessage,
   isDeletable,
-  createCommandMessage,
-  WhisperMessage,
-  createCaptionMessage
+  Message,
+  WhisperMessage
 } from './message'
-import { Room } from './room'
+import { Modal } from './modals'
 import {
+  fetchProfile,
+  sendCaption,
   sendChatMessage,
   toggleUserBan,
   toggleUserMod,
-  updateProfileColor,
   updateFontReward,
-  fetchProfile,
-  sendCaption
+  updateProfileColor
 } from './networking'
-import { PublicUser, MinimalUser, User } from '../server/src/user'
-import { v4 as uuidv4 } from 'uuid'
-import { Modal } from './modals'
+import { Room } from './room'
 import { matchingSlashCommand, SlashCommandType } from './SlashCommands'
-import { MESSAGE_MAX_LENGTH } from '../server/src/config'
-import { ServerSettings, DEFAULT_SERVER_SETTINGS } from '../server/src/types'
 import * as Storage from './storage'
-import firebase from 'firebase/app'
-import Config from './config'
-import { Badge } from '../server/src/badges'
 
 type Dictionary<T> = {
-  [id: string]: T | undefined,
-}
+  [id: string]: T | undefined;
+};
 
 type EntityState<T> = {
-  ids: string[],
-  entities: Dictionary<T>
-}
+  ids: string[];
+  entities: Dictionary<T>;
+};
 
 export interface State {
   firebaseApp: firebase.app.App;
@@ -83,40 +83,40 @@ export interface State {
   /** This is poorly named, but being "in media chat" means "is publishing audio and/or video" */
   inMediaChat: boolean;
   keepCameraWhenMoving?: boolean;
-  captionsEnabled: boolean,
+  captionsEnabled: boolean;
 
   /** text-only mode functionally overrides audio-only mode, since we don't even connect to Twilio */
   textOnlyMode?: boolean;
   audioOnlyMode?: boolean;
 
   /** Tuples of userId and when they were last the visible speaker */
-  visibleSpeakers: [string, Date][]
-  currentSpeaker?: string
+  visibleSpeakers: [string, Date][];
+  currentSpeaker?: string;
 
   // How many people (other than you) to show in media chat
-  numberOfFaces: number
+  numberOfFaces: number;
 
   // If this is set to something other than Modal.None, that will indicate
   // which modal view should be rendered on top of the chat view
-  activeModal: Modal
-  activeModalOptions: ModalOptions,
+  activeModal: Modal;
+  activeModalOptions: ModalOptions;
 
   // User ID of whose profile should be shwon
   visibleProfile?: PublicUser;
 
   // If the device is a portrait smartphone, we hide the menu in favor of a hamburger button
   // In that situation, this reflects whether the side menu is visible.
-  mobileSideMenuIsVisible?: boolean
+  mobileSideMenuIsVisible?: boolean;
 
   // If true, non-mods cannot access the space
-  isClosed?: boolean
+  isClosed?: boolean;
 
-  isBanned: boolean
+  isBanned: boolean;
 
-  serverSettings: ServerSettings
+  serverSettings: ServerSettings;
 
-  unlockableBadges: Badge[]
-  justUnlockedBadge?: Badge
+  unlockableBadges: Badge[];
+  justUnlockedBadge?: Badge;
 }
 
 console.log(Config.FIREBASE_CONFIG)
@@ -164,7 +164,10 @@ export default (oldState: State, action: Action): State => {
     state.roomId = action.value.roomId
     state.roomData = { ...state.roomData, ...action.value.roomData }
 
-    if (state.roomId === 'entryway' || (state.roomData[state.roomId].mediaChat && !state.hasDismissedAModal)) {
+    if (
+      state.roomId === 'entryway' ||
+      (state.roomData[state.roomId].mediaChat && !state.hasDismissedAModal)
+    ) {
       // 2020 behavior: Show every time someone loads into the entryway (the starting room)
       // 2021 behavior: In order to fix videochat connection issues, forcing this on every reload
       //  was a hacky way to make sure that players always interacted with the page before we loaded videochat
@@ -217,7 +220,10 @@ export default (oldState: State, action: Action): State => {
     const roomData = state.roomData[state.roomId]
     if (roomData && roomData.users && !roomData?.users.includes(user.id)) {
       roomData.users.push(user.id)
-      addMessage(state, createConnectedMessage(user.id, state.roomId, roomData.users.length))
+      addMessage(
+        state,
+        createConnectedMessage(user.id, state.roomId, roomData.users.length)
+      )
     }
     state.userMap[user.id] = user
   }
@@ -225,15 +231,29 @@ export default (oldState: State, action: Action): State => {
   if (action.type === ActionType.PlayerDisconnected) {
     const roomData = state.roomData[state.roomId]
     roomData.users = roomData.users.filter((u) => u !== action.value)
-    addMessage(state, createDisconnectedMessage(action.value, state.roomId, roomData.users.length))
+    addMessage(
+      state,
+      createDisconnectedMessage(
+        action.value,
+        state.roomId,
+        roomData.users.length
+      )
+    )
   }
 
   if (action.type === ActionType.PlayerEntered) {
     const roomData = state.roomData[state.roomId]
     if (roomData.users && !roomData.users.includes(action.value.name)) {
       roomData.users.push(action.value.name)
-      addMessage(state,
-        createEnteredMessage(action.value.name, action.value.fromId, action.value.fromName, state.roomId, roomData.users.length)
+      addMessage(
+        state,
+        createEnteredMessage(
+          action.value.name,
+          action.value.fromId,
+          action.value.fromName,
+          state.roomId,
+          roomData.users.length
+        )
       )
     }
   }
@@ -241,23 +261,45 @@ export default (oldState: State, action: Action): State => {
   if (action.type === ActionType.PlayerLeft) {
     const roomData = state.roomData[state.roomId]
     roomData.users = roomData.users.filter((u) => u !== action.value.name)
-    addMessage(state, createLeftMessage(action.value.name, action.value.toId, action.value.toName, state.roomId, roomData.users.length))
+    addMessage(
+      state,
+      createLeftMessage(
+        action.value.name,
+        action.value.toId,
+        action.value.toName,
+        state.roomId,
+        roomData.users.length
+      )
+    )
   }
 
   if (action.type === ActionType.ChatMessage) {
-    addMessage(state,
-      createChatMessage(action.value.messageId, action.value.name, action.value.message)
+    addMessage(
+      state,
+      createChatMessage(
+        action.value.messageId,
+        action.value.name,
+        action.value.message
+      )
     )
   }
 
   if (action.type === ActionType.CaptionMessage) {
-    addMessage(state,
-      createCaptionMessage(action.value.messageId, action.value.name, action.value.message)
+    addMessage(
+      state,
+      createCaptionMessage(
+        action.value.messageId,
+        action.value.name,
+        action.value.message
+      )
     )
   }
 
   if (action.type === ActionType.Whisper) {
-    const whisperMessage = createWhisperMessage(action.value.name, action.value.message)
+    const whisperMessage = createWhisperMessage(
+      action.value.name,
+      action.value.message
+    )
     addMessage(state, whisperMessage)
     saveWhisper(state, whisperMessage)
   }
@@ -278,20 +320,35 @@ export default (oldState: State, action: Action): State => {
   }
 
   if (action.type === ActionType.Shout) {
-    addMessage(state,
-      createShoutMessage(action.value.messageId, action.value.name, action.value.message)
+    addMessage(
+      state,
+      createShoutMessage(
+        action.value.messageId,
+        action.value.name,
+        action.value.message
+      )
     )
   }
 
   if (action.type === ActionType.Emote) {
-    addMessage(state,
-      createEmoteMessage(action.value.messageId, action.value.name, action.value.message)
+    addMessage(
+      state,
+      createEmoteMessage(
+        action.value.messageId,
+        action.value.name,
+        action.value.message
+      )
     )
   }
 
   if (action.type === ActionType.Dance) {
-    addMessage(state,
-      createDanceMessage(action.value.messageId, action.value.name, action.value.message)
+    addMessage(
+      state,
+      createDanceMessage(
+        action.value.messageId,
+        action.value.name,
+        action.value.message
+      )
     )
   }
 
@@ -309,7 +366,10 @@ export default (oldState: State, action: Action): State => {
       state.isBanned = true
     } else {
       state.userMap[action.value.id].isBanned = true
-      addMessage(state, createErrorMessage('User ' + action.value.username + ' was banned!'))
+      addMessage(
+        state,
+        createErrorMessage('User ' + action.value.username + ' was banned!')
+      )
     }
   }
 
@@ -318,16 +378,27 @@ export default (oldState: State, action: Action): State => {
     if (state.userMap[action.value.id]) {
       state.userMap[action.value.id].isBanned = false
     }
-    addMessage(state, createErrorMessage('User ' + action.value.username + ' was unbanned!'))
+    addMessage(
+      state,
+      createErrorMessage('User ' + action.value.username + ' was unbanned!')
+    )
   }
 
   if (action.type === ActionType.UpdateProfileColor) {
     state.userMap[state.userId].nameColor = action.color
 
     if (action.color) {
-      addMessage(state, createErrorMessage('Your name color was changed to ' + action.color))
+      addMessage(
+        state,
+        createErrorMessage('Your name color was changed to ' + action.color)
+      )
     } else {
-      addMessage(state, createErrorMessage('Your name color has changed back to its original state.'))
+      addMessage(
+        state,
+        createErrorMessage(
+          'Your name color has changed back to its original state.'
+        )
+      )
     }
 
     updateProfileColor(state.userId, action.color)
@@ -338,9 +409,19 @@ export default (oldState: State, action: Action): State => {
 
     // I'm following the pattern of the set colour but... I don't think the user sees these message, and they aren't errors, why do we do this?
     if (action.font) {
-      addMessage(state, createErrorMessage('You feel invigorated, and like you\'ve become more... ' + action.font))
+      addMessage(
+        state,
+        createErrorMessage(
+          "You feel invigorated, and like you've become more... " + action.font
+        )
+      )
     } else {
-      addMessage(state, createErrorMessage('You feel yourself return to your normal state, like you never went riddling to begin with.'))
+      addMessage(
+        state,
+        createErrorMessage(
+          'You feel yourself return to your normal state, like you never went riddling to begin with.'
+        )
+      )
     }
 
     updateFontReward(state.userId, action.font)
@@ -353,7 +434,9 @@ export default (oldState: State, action: Action): State => {
   if (action.type === ActionType.MediaReceivedSpeakingData) {
     state.currentSpeaker = action.value
     if (action.value !== null && action.value !== state.userId) {
-      if (!state.visibleSpeakers.find(([userId, _]) => userId === action.value)) {
+      if (
+        !state.visibleSpeakers.find(([userId, _]) => userId === action.value)
+      ) {
         if (state.visibleSpeakers.length < state.numberOfFaces) {
           state.visibleSpeakers.push([action.value, new Date()])
         } else {
@@ -390,19 +473,36 @@ export default (oldState: State, action: Action): State => {
     const messageId: string = uuidv4()
     const trimmedMessage = action.value.trim()
     const beginsWithSlash = /^\/.+?/.exec(trimmedMessage)
-    const matching = beginsWithSlash ? matchingSlashCommand(trimmedMessage) : undefined
+    const matching = beginsWithSlash
+      ? matchingSlashCommand(trimmedMessage)
+      : undefined
 
     if (trimmedMessage.length > MESSAGE_MAX_LENGTH) {
-      addMessage(state, createErrorMessage('Your message is too long! Please try to keep it under ~600 characters!'))
+      addMessage(
+        state,
+        createErrorMessage(
+          'Your message is too long! Please try to keep it under ~600 characters!'
+        )
+      )
     } else if (beginsWithSlash && matching === undefined) {
       const commandStr = /^(\/.+?) (.+)/.exec(trimmedMessage)
-      addMessage(state, createErrorMessage(`Your command ${commandStr ? commandStr[1] : action.value} is not a registered slash command!`))
+      addMessage(
+        state,
+        createErrorMessage(
+          `Your command ${
+            commandStr ? commandStr[1] : action.value
+          } is not a registered slash command!`
+        )
+      )
     } else if (beginsWithSlash && matching.type === SlashCommandType.Whisper) {
       const commandStr = /^(\/.+?) (.+)/.exec(trimmedMessage)
       const parsedUsernameMessage = /^(.+?) (.+)/.exec(commandStr[2])
 
       if (!parsedUsernameMessage) {
-        addMessage(state, createErrorMessage(`Your whisper to ${commandStr[2]} had no message!`))
+        addMessage(
+          state,
+          createErrorMessage(`Your whisper to ${commandStr[2]} had no message!`)
+        )
       } else {
         sendChatMessage(messageId, trimmedMessage)
 
@@ -419,23 +519,39 @@ export default (oldState: State, action: Action): State => {
       }
     } else if (beginsWithSlash && matching.type === SlashCommandType.Help) {
       state.activeModal = Modal.Help
-      addMessage(state, createCommandMessage('You consult the help docs. (You can also find them in sidebar!)'))
+      addMessage(
+        state,
+        createCommandMessage(
+          'You consult the help docs. (You can also find them in sidebar!)'
+        )
+      )
     } else if (beginsWithSlash && matching.type === SlashCommandType.Look) {
       const commandStr = /^(\/.+?) (.+)/.exec(trimmedMessage)
-      addMessage(state, createCommandMessage(`You attempt to examine ${commandStr[2]}. (You can also click on their username and select Profile!)`))
+      addMessage(
+        state,
+        createCommandMessage(
+          `You attempt to examine ${commandStr[2]}. (You can also click on their username and select Profile!)`
+        )
+      )
       sendChatMessage(messageId, trimmedMessage)
     } else if (beginsWithSlash) {
       sendChatMessage(messageId, trimmedMessage)
     } else {
       sendChatMessage(messageId, action.value)
-      addMessage(state, createChatMessage(messageId, state.userId, action.value))
+      addMessage(
+        state,
+        createChatMessage(messageId, state.userId, action.value)
+      )
     }
   }
 
   if (action.type === ActionType.SendCaption) {
     const messageId: string = uuidv4()
     sendCaption(messageId, action.value)
-    addMessage(state, createCaptionMessage(messageId, state.userId, action.value))
+    addMessage(
+      state,
+      createCaptionMessage(messageId, state.userId, action.value)
+    )
   }
 
   if (action.type === ActionType.StartWhisper) {
@@ -502,7 +618,9 @@ export default (oldState: State, action: Action): State => {
     if (!action.refresh) {
       Storage.setTextOnlyMode(action.textOnlyMode)
     } else {
-      Storage.setTextOnlyMode(action.textOnlyMode).then(() => window.location.reload())
+      Storage.setTextOnlyMode(action.textOnlyMode).then(() =>
+        window.location.reload()
+      )
     }
   }
 
@@ -544,11 +662,14 @@ export default (oldState: State, action: Action): State => {
   }
 
   if (action.type === ActionType.LoadMessageArchive) {
-    state.messages = action.messages.reduce((acc, message) => {
-      acc.ids.push(message.id)
-      acc.entities[message.id] = message
-      return acc
-    }, { ids: [], entities: {} })
+    state.messages = action.messages.reduce(
+      (acc, message) => {
+        acc.ids.push(message.id)
+        acc.entities[message.id] = message
+        return acc
+      },
+      { ids: [], entities: {} }
+    )
     state.whispers = action.whispers || []
   }
 
@@ -567,7 +688,7 @@ export default (oldState: State, action: Action): State => {
     if (room.hasNoteWall) {
       if (!room.notes) room.notes = []
 
-      room.notes = room.notes.filter(n => n.id !== action.value.noteId)
+      room.notes = room.notes.filter((n) => n.id !== action.value.noteId)
     }
   }
 
@@ -576,7 +697,7 @@ export default (oldState: State, action: Action): State => {
     if (room.hasNoteWall) {
       if (!room.notes) room.notes = []
 
-      const note = room.notes.find(n => n.id === action.value.noteId)
+      const note = room.notes.find((n) => n.id === action.value.noteId)
       if (note) {
         note.likes = action.value.likes
       }
@@ -597,7 +718,12 @@ export default (oldState: State, action: Action): State => {
   if (action.type === ActionType.SpaceOpenedOrClosed) {
     if (state.userMap[state.userId].isMod) {
       state.isClosed = action.value
-      addMessage(state, createCommandMessage(`The space is now ${action.value ? 'closed' : 'open'}`))
+      addMessage(
+        state,
+        createCommandMessage(
+          `The space is now ${action.value ? 'closed' : 'open'}`
+        )
+      )
     } else {
       // Not reloading the page will show the 'go home' screen, but will still send SignalR data
       // Just hard-reloading the page will stop them from getting messages
@@ -661,6 +787,6 @@ async function addMessage (state: State, message: Message) {
 // This is intended to be a big old unreadable grab bag,
 // but seems better than alternatives
 export interface ModalOptions {
-    hideVideo?: boolean,
-    showJoinButton?: boolean
+  hideVideo?: boolean;
+  showJoinButton?: boolean;
 }
