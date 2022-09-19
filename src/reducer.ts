@@ -39,6 +39,16 @@ import * as Storage from './storage'
 import firebase from 'firebase/app'
 import Config from './config'
 import { Badge } from '../server/src/badges'
+
+type Dictionary<T> = {
+  [id: string]: T | undefined,
+}
+
+type EntityState<T> = {
+  ids: string[],
+  entities: Dictionary<T>
+}
+
 export interface State {
   firebaseApp: firebase.app.App;
   authenticated: boolean;
@@ -61,7 +71,7 @@ export interface State {
 
   profileData?: User;
 
-  messages: Message[];
+  messages: EntityState<Message>;
   whispers: WhisperMessage[];
   autoscrollChat: boolean;
 
@@ -115,7 +125,7 @@ export const defaultState: State = {
   authenticated: false,
   checkedAuthentication: false,
   hasRegistered: false,
-  messages: [],
+  messages: { ids: [], entities: {} },
   whispers: [],
   visibleSpeakers: [],
   autoscrollChat: true,
@@ -534,7 +544,11 @@ export default (oldState: State, action: Action): State => {
   }
 
   if (action.type === ActionType.LoadMessageArchive) {
-    state.messages = action.messages
+    state.messages = action.messages.reduce((acc, message) => {
+      acc.ids.push(message.id)
+      acc.entities[message.id] = message
+      return acc
+    }, { ids: [], entities: {} })
     state.whispers = action.whispers || []
   }
 
@@ -623,12 +637,12 @@ export default (oldState: State, action: Action): State => {
 // WARNING: These three functions modify the message state without awaiting on the result.
 // If you're seeing weird race conditions with the message store, that's probably the issue.
 
-function deleteMessage (state: State, messageId: String) {
-  const target = state.messages.find(m => isDeletable(m) && m.messageId === messageId)
+function deleteMessage (state: State, messageId: string) {
+  const target = state.messages.entities[messageId] // .find(m => isDeletable(m) && m.messageId === messageId)
   // Calling isDeletable again here so TypeScript can properly cast; if there's a nicer way to do this, please inform!
   if (isDeletable(target)) {
     target.message = 'message was removed by moderator'
-    Storage.setMessages(state.messages)
+    Storage.setMessages(Object.values(state.messages.entities))
   }
 }
 
@@ -638,9 +652,10 @@ async function saveWhisper (state: State, message: WhisperMessage) {
 }
 
 async function addMessage (state: State, message: Message) {
-  state.messages.push(message)
-  state.messages = state.messages.slice(-500)
-  Storage.setMessages(state.messages)
+  state.messages.ids.push(message.id)
+  state.messages.entities[message.id] = message
+  // state.messages = state.messages.slice(-500)
+  Storage.setMessages(Object.values(state.messages.entities))
 }
 
 // This is intended to be a big old unreadable grab bag,
