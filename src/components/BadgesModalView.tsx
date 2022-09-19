@@ -8,7 +8,7 @@ import BadgeView from './BadgeView'
 import { Badge } from '../../server/src/badges'
 import { EquipBadgeAction } from '../Actions'
 import { equipBadge } from '../networking'
-import { find, isNumber } from 'lodash'
+import { find, isNumber, uniq } from 'lodash'
 
 interface Props {
   unlockedBadges: Badge[]
@@ -67,6 +67,19 @@ export default function BadgesModalView (props: Props) {
     }
   }
 
+  const rightClickUnequipBadge = (e) => {
+    e.preventDefault()
+    const index = parseInt(e.currentTarget.dataset.index)
+    setSelectedEquippedIndex(undefined)
+
+    if (isNumber(index)) {
+      dispatch(EquipBadgeAction(undefined, index))
+      equipBadge(undefined, index)
+      setSelectedBadge(undefined)
+      setSelectedEquippedIndex(undefined)
+    }
+  }
+
   const selectUnlockedBadge = (e) => {
     const index = parseInt(e.currentTarget.dataset.index)
     const badge = props.unlockedBadges[index]
@@ -89,6 +102,9 @@ export default function BadgesModalView (props: Props) {
   const keyDownOnEquipped = (e) => {
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'Spacebar') {
       selectEquippedBadge(e)
+    } else if ((e.key === 'Backspace' || e.key === 'Delete') && isNumber(selectedEquippedIndex)) {
+      dispatch(EquipBadgeAction(undefined, selectedEquippedIndex))
+      equipBadge(undefined, selectedEquippedIndex)
     }
   }
 
@@ -101,7 +117,7 @@ export default function BadgesModalView (props: Props) {
   // If there's a badge in the right position but not the left, a[0] is undefined
   // Running array.map on an array with undefined values skips the undefineds
   // This means we need a for loop instead of a map.
-  const rawEquippedBadges = props.equippedBadges || []
+  const rawEquippedBadges = uniq(props.equippedBadges || [])
   const equippedBadges = []
   for (let i = 0; i < Math.max(rawEquippedBadges.length, 2); i++) {
     const b = rawEquippedBadges[i]
@@ -113,6 +129,7 @@ export default function BadgesModalView (props: Props) {
           data-index={i}
           key={`selected-${i}`}
           onClick={selectEquippedBadge}
+          onContextMenu={rightClickUnequipBadge}
           onDrop={drop}
           onDragOver={dragOver}
           onKeyDown={keyDownOnEquipped}
@@ -128,6 +145,7 @@ export default function BadgesModalView (props: Props) {
           className={`selected-badge ${i === selectedEquippedIndex ? 'selected' : ''}`} data-index={i}
           key={`selected-${i}`}
           onClick={selectEquippedBadge}
+          onContextMenu={rightClickUnequipBadge}
           onDrop={drop}
           onDragOver={dragOver}
           onKeyDown={keyDownOnEquipped}
@@ -141,7 +159,7 @@ export default function BadgesModalView (props: Props) {
 
   // TODO: Can you see description with screen reader?
   // If we have perf issues, we can map-ify unlockedBadges like on the server
-  const lockedBadges = (props.unlockableBadges || []).filter(b => {
+  const lockedBadges = uniq(props.unlockableBadges || []).filter(b => {
     return !find(props.unlockedBadges, (c) => c.emoji === b.emoji)
   }).map((b) => {
     return (
@@ -178,7 +196,7 @@ export default function BadgesModalView (props: Props) {
       <h1>Your Badges</h1>
       <div>
         <h2>Equipped</h2>
-        {equippedBadges}
+        {equippedBadges} (right-click or highlight & press delete to unequip)
       </div>
       <div>
         <h2>All Badges</h2>
