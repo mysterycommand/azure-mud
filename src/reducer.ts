@@ -23,7 +23,7 @@ import {
   createSameRoomMessage,
   createShoutMessage,
   createWhisperMessage,
-  isDeletable,
+  isDeletableMessage,
   Message,
   WhisperMessage
 } from './message'
@@ -763,7 +763,7 @@ export default produce((draft: State, action: Action) => {
 function deleteMessage (state: State, messageId: string) {
   const target = state.messages.entities[messageId] // .find(m => isDeletable(m) && m.messageId === messageId)
   // Calling isDeletable again here so TypeScript can properly cast; if there's a nicer way to do this, please inform!
-  if (isDeletable(target)) {
+  if (isDeletableMessage(target)) {
     target.message = 'message was removed by moderator'
     Storage.setMessages(Object.values(state.messages.entities))
   }

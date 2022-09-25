@@ -20,6 +20,13 @@ import {
   WhisperMessage
 } from './types'
 
+type AnyDeletableMessageType =
+  | ChatMessage
+  | EmoteMessage
+  | ShoutMessage
+  | DanceMessage
+  | CaptionMessage;
+
 const deletableMessageTypes = [
   MessageType.Chat,
   MessageType.Emote,
@@ -27,10 +34,29 @@ const deletableMessageTypes = [
   MessageType.Dance,
   MessageType.Caption
 ]
-export const isDeletable = (
+
+export const isDeletableMessage = (
   message: Message
-): message is ChatMessage | EmoteMessage | ShoutMessage | DanceMessage =>
+): message is AnyDeletableMessageType =>
   deletableMessageTypes.includes(message.type)
+
+type AnyMovementMessageType =
+  | ConnectedMessage
+  | DisconnectedMessage
+  | EnteredMessage
+  | LeftMessage;
+
+const movementMessageTypes = [
+  MessageType.Connected,
+  MessageType.Disconnected,
+  MessageType.Entered,
+  MessageType.Left
+]
+
+export const isMovementMessage = (
+  message: Message
+): message is AnyMovementMessageType =>
+  movementMessageTypes.includes(message.type)
 
 const createBaseMessage = <T extends MessageType>(type: T): BaseMessage<T> => ({
   type,
