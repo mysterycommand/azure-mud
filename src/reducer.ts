@@ -24,7 +24,9 @@ import {
   createShoutMessage,
   createWhisperMessage,
   isDeletableMessage,
+  isMovementMessage,
   Message,
+  MessageType,
   WhisperMessage
 } from './message'
 import { Modal } from './modals'
@@ -762,6 +764,7 @@ export default produce((draft: State, action: Action) => {
 
 function deleteMessage (state: State, messageId: string) {
   const target = state.messages.entities[messageId] // .find(m => isDeletable(m) && m.messageId === messageId)
+
   // Calling isDeletable again here so TypeScript can properly cast; if there's a nicer way to do this, please inform!
   if (isDeletableMessage(target)) {
     target.message = 'message was removed by moderator'
@@ -774,9 +777,32 @@ async function saveWhisper (state: State, message: WhisperMessage) {
   Storage.setWhispers(state.whispers)
 }
 
+const isHiddenRoom = (state: State, roomId: string): boolean =>
+  state.serverSettings.movementMessagesHideRoomIds.includes(roomId)
+
+const isBusyRoom = (state: State, numUsersInRoom: number): boolean =>
+  state.serverSettings.movementMessagesHideThreshold < numUsersInRoom
+
 async function addMessage (state: State, message: Message) {
-  state.messages.ids.push(message.id)
   state.messages.entities[message.id] = message
+  state.messages.ids = Object.values(state.messages.entities)
+    .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
+    .reduce((acc, message) => {
+      if (
+        isMovementMessage(message) &&
+        (isHiddenRoom(state, message.roomId) ||
+          isBusyRoom(state, message.numUsersInRoom))
+      ) {
+        return acc
+      }
+
+      if (!state.captionsEnabled && message.type === MessageType.Caption) {
+        return acc
+      }
+
+      acc.push(message.id)
+      return acc
+    }, [])
   // state.messages = state.messages.slice(-500)
   Storage.setMessages(Object.values(state.messages.entities))
 }
