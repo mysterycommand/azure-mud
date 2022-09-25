@@ -14,8 +14,8 @@ import {
 } from '../../Actions'
 import { DispatchContext, MessagesContext } from '../../App'
 
-import { Message, MessageType } from '../../message'
-import MessageView from '../MessageView'
+import { Message } from '../../message'
+import { MessageItem } from '../MessageItem'
 
 import './MessageList.css'
 
@@ -117,19 +117,17 @@ export const MessageList: FC<MessageListProps> = ({ autoscroll }) => {
       ref={scrollContainerRef}
       onScroll={toggleAutoscroll}
     >
-      {messages.ids.map((id, i) => {
+      {messages.ids.map((id, i, ids) => {
         const message = messages.entities[id]
+        const prevMessage = messages.entities[ids[i - 1]]
 
         return (
-          <li key={message.id}>
-            {message.type === MessageType.MovedRoom && <hr />}
-            <MessageView
-              message={message}
-              id={message.id}
-              hideTimestamp={shouldHideTimestamp(message, messages[i - 1])}
-              msgIndex={i}
-            />
-          </li>
+          <MessageItem
+            key={id}
+            id={id}
+            hideTimestamp={shouldHideTimestamp(message, prevMessage)}
+            msgIndex={i}
+          />
         )
       })}
     </ol>
