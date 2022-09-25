@@ -12,7 +12,7 @@ import {
   ActivateAutoscrollAction,
   DeactivateAutoscrollAction
 } from '../../Actions'
-import { DispatchContext } from '../../App'
+import { DispatchContext, MessagesContext } from '../../App'
 
 import { Message, MessageType } from '../../message'
 import MessageView from '../MessageView'
@@ -20,7 +20,7 @@ import MessageView from '../MessageView'
 import './MessageList.css'
 
 interface MessageListProps {
-  messages: Message[];
+  // messages: Message[];
   autoscroll: boolean;
 }
 
@@ -102,7 +102,9 @@ const useToggleAutoscroll = (
   )
 }
 
-export const MessageList: FC<MessageListProps> = ({ messages, autoscroll }) => {
+export const MessageList: FC<MessageListProps> = ({ autoscroll }) => {
+  const messages = useContext(MessagesContext)
+
   const scrollContainerRef = useAutoscrollTo(
     '.message-list > :last-child',
     autoscroll
@@ -115,17 +117,21 @@ export const MessageList: FC<MessageListProps> = ({ messages, autoscroll }) => {
       ref={scrollContainerRef}
       onScroll={toggleAutoscroll}
     >
-      {messages.map((message, i) => (
-        <li key={message.id}>
-          {message.type === MessageType.MovedRoom && <hr />}
-          <MessageView
-            message={message}
-            id={message.id}
-            hideTimestamp={shouldHideTimestamp(message, messages[i - 1])}
-            msgIndex={i}
-          />
-        </li>
-      ))}
+      {messages.ids.map((id, i) => {
+        const message = messages.entities[id]
+
+        return (
+          <li key={message.id}>
+            {message.type === MessageType.MovedRoom && <hr />}
+            <MessageView
+              message={message}
+              id={message.id}
+              hideTimestamp={shouldHideTimestamp(message, messages[i - 1])}
+              msgIndex={i}
+            />
+          </li>
+        )
+      })}
     </ol>
   )
 }
